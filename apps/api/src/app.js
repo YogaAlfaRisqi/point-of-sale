@@ -1,14 +1,37 @@
-const express = require('express')
-const dotenv = require('dotenv')
-const app = express()
-const PORT = process.env.PORT || 3000
-import {PrismaClient} from '@prisma/client'
-const prisma = new PrismaClient()
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const { PrismaClient } = require('../generated/prisma');
+const apiRouter = require('./routes');
 
+dotenv.config();
+
+const app = express();
+const prisma = new PrismaClient();
+
+
+// Global Middlewares
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// API routes with prefix
+app.use('/api/v1', apiRouter);
+
+// Health check at root
 app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+  res.json({
+    name: "POS API",
+    version: "1.0.0",
+    status: "running",
+    docs: "/api/v1/docs"
+  });
+});
 
-app.listen(PORT, () => {
-  console.log("Example app listening on port: " + PORT)
-})
+// Graceful shutdown (supaya prisma connection bersih saat server mati)
+process.on('SIGINT', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+module.exports = app;
