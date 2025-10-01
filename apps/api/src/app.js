@@ -1,13 +1,10 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const { PrismaClient } = require('../generated/prisma');
-const apiRouter = require('./routes');
-
-dotenv.config();
-
-const app = express();
 const prisma = new PrismaClient();
+const apiRouter = require('./routes');
+const app = express();
+const config = require('../config/config');
 
 
 // Global Middlewares
@@ -24,7 +21,8 @@ app.get('/', (req, res) => {
     name: "POS API",
     version: "1.0.0",
     status: "running",
-    docs: "/api/v1/docs"
+    docs: "/api/v1/",
+    envirenment: config.app.env
   });
 });
 
