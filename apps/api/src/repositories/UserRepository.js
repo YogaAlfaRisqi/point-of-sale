@@ -1,9 +1,8 @@
-const prisma = require('../../prisma/client/client');
+const prisma = require('../config/database');
 
 class UserRepository {
 
-  // Create a new user
-  async createUser(userData) {
+  static async create(userData) {
     try{
       return prisma.user.create({
         data: userData,
@@ -13,8 +12,8 @@ class UserRepository {
     }
   }
 
-  // Update an existing user
-  async updateUser(userId, updateData){
+
+  async update(userId, updateData){
     try{
       return prisma.user.update({
         where: { id: userId },
@@ -25,27 +24,70 @@ class UserRepository {
     }
   }
 
-  // Delete a user by ID
+
   async delete(userId) {
     return prisma.user.delete({
       where: { id: userId },
     });
   }
 
-  // Find All users with their roles and sales
-  async findAll() {
-    return prisma.user.findMany({
-      include: {
-        userRoles: {
-          include: { role: true }
-        },
-        sales: true,
-      },
+  static async findByEmail(email) {
+    return prisma.user.findUnique({
+      where: { email },
     });
   }
 
-  // Find user by ID with roles and sales
-  async findById(userId) {
+   static async findByUsername(username) {
+    return prisma.user.findUnique({ where: { username } });
+  }
+
+  static async findByIdentifier(identifier){
+    return prisma.user.findFirst({
+      where:{
+        OR: [
+          {email:identifier},
+          {username:identifier},
+        ]
+      }
+    })
+  }
+
+  static async findAll(filters = {}) {
+      const {
+        page = 1,
+        limit = 10,
+        includeRoles = false,
+        includeSales = false,
+        salesLimit = 10, 
+      } = filters;
+
+      const skip = (page - 1) * limit;
+
+      const include = {};
+
+      if (includeRoles){
+        include.userRoles = {
+          include: { role: true }
+        }
+      }
+
+      if (includeSales){
+        include.sales = {
+          take: salesLimit,
+          orderBy: { createdAt: 'desc' }
+        };
+      }
+
+      return prisma.user.findMany({
+        skip,
+        take: limit,
+        include: Object.keys(include).length>0 ? include : undefined,
+      })
+
+  }
+
+
+  static async findById(userId) {
     return prisma.user.findUnique({
       where: { id: userId },
       include: {

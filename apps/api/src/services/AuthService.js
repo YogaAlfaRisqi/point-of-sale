@@ -1,51 +1,75 @@
-
+const userRepository = require("../repositories/UserRepository");
+const bcrypt = require("bcrypt");
+const AppError = require("../utils/AppError");
 
 class AuthService {
-    async register(req, res) {
-        // Logic for user registration
-        // validate input
-        const existingUser = await userRepository.findByEmail(email);
-        if (existingUser){
-            throw new Error('User already exists');
+  static async register({ username, email, password }) {
+    const existingEmail = await userRepository.findByEmail(email);
+    if (existingEmail) {
+      throw new AppError(
+        "Email is already regitered. Please login instead.",
+        400
+      );
+    }
+
+    const existingUsername = await userRepository.findByUsername(username);
+    if (existingUsername) {
+      throw new AppError(
+        "Username is already taken. Please choose another one.",
+        400
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const userData = {
+      username,
+      email,
+      password: hashedPassword,
+    };
+
+    const newUser = await userRepository.create(userData);
+
+    return newUser;
+  }
+
+  static async login({identifier, password}) {
+        const user = await userRepository.findByIdentifier(identifier);
+
+        if(!user){
+            throw new AppError("User Not Found");
         }
 
-        // hash password
-        const hashedPassword = await hashPassword(password)
-       
-        const userData = {
-            email,
-            password: hashedPassword,
-            name,
-            // other user details
-        };
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if(!isPasswordValid){
+            throw new AppError("Invalid password");
+        }
 
-        const newUser = await userRepository.create(userData);
+        // Generate JWT
 
-        // return user data
-        return newUser;
-    }
 
-    static async login(req, res) {
-        // Logic for user login
-        // email, password check
+        return {
+            user:{
+                id:user.id,
+                username:user.username,
+                email:user.email
+            }
+        }
+  }
 
-        // generate jwt token
-        // return token + user data
-    }
+  static async resetPassword(req, res) {
+    // Logic for password reset
+    // generate reset token
+    // send email with reset link
+    // return success message
+  }
 
-    static async resetPassword(req, res) {
-        // Logic for password reset
-        // generate reset token
-        // send email with reset link
-        // return success message
-    }  
-
-    static async forgotEmailOrPassword(req, res) {
-        // Logic for handling forgotten email or password
-        // verify user identity
-        // send email with instructions
-        // return success message
-    }
+  static async forgotEmailOrPassword(req, res) {
+    // Logic for handling forgotten email or password
+    // verify user identity
+    // send email with instructions
+    // return success message
+  }
 }
 
 module.exports = AuthService;

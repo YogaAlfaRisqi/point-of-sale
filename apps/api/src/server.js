@@ -1,12 +1,26 @@
 
-const app = require('./app.js')
-const config = require('../config/config')
+const errorHandler = require("./middleware/errorHandler")
+const dotenv = require('dotenv');
+dotenv.config();
+const app = require('./app');
+const prisma = require('./config/database');
 
+const PORT = process.env.PORT || 3000;
 
-app.get('/api', (req, res) => {
-  res.json({message: "API is running v1"})
-})
-
-app.listen(config.app.port, () => {
-  console.log(`🚀 Server running at http://localhost:${config.app.port} in ${config.app.env} mode`);
+app.listen(PORT, async () => {
+  try {
+    await prisma.$connect;
+    console.log(`✅ Database connected`);
+    console.log(`🚀 Server running on port ${PORT}`);
+  } catch (error) {
+    console.error('❌ Database connection failed:', error);
+    process.exit(1);
+  }
 });
+
+process.on('SIGINT', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+app.use(errorHandler)
