@@ -1,14 +1,16 @@
 const express = require('express');
 const cors = require('cors');
-const { PrismaClient } = require('../generated/prisma');
-const prisma = new PrismaClient();
+const helmet = require('helmet');
+const morgan = require('morgan');
 const apiRouter = require('./routes');
+
 const app = express();
-const config = require('../config/config');
 
 
-// Global Middlewares
+// Middlewares
 app.use(cors());
+app.use(helmet());
+app.use(morgan());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -21,15 +23,9 @@ app.get('/', (req, res) => {
     name: "POS API",
     version: "1.0.0",
     status: "running",
-    docs: "/api/v1/",
-    envirenment: config.app.env
+    docs: "/api/v1/"
   });
 });
 
-// Graceful shutdown (supaya prisma connection bersih saat server mati)
-process.on('SIGINT', async () => {
-  await prisma.$disconnect();
-  process.exit(0);
-});
 
 module.exports = app;

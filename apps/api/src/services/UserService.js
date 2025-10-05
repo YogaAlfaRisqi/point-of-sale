@@ -1,16 +1,8 @@
 const UserRepository = require('../repositories/UserRepository');
 
 class UserService {
-  static async getAllUsers() {
-    const users = await UserRepository.findAll();
-
-    return users.map(user => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      roles: user.userRoles.map(ur => ur.role.name),
-      salesCount: user.sales.length, //agregasi
-    }));
+  static async getAllUsers(page, limit) {
+    return UserRepository.findAll({ page, limit });
   }
 
   static async getUserById(userId) {
