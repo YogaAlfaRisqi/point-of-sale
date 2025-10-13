@@ -1,12 +1,12 @@
 const userRepository = require("../repositories/UserRepository");
 const bcrypt = require("bcrypt");
-const AppError = require("../utils/AppError");
+const ApiError = require("../utils/ApiError");
 
 class AuthService {
   static async register({ username, email, password }) {
     const existingEmail = await userRepository.findByEmail(email);
     if (existingEmail) {
-      throw new AppError(
+      throw new ApiError(
         "Email is already regitered. Please login instead.",
         400
       );
@@ -14,7 +14,7 @@ class AuthService {
 
     const existingUsername = await userRepository.findByUsername(username);
     if (existingUsername) {
-      throw new AppError(
+      throw new ApiError(
         "Username is already taken. Please choose another one.",
         400
       );
@@ -37,12 +37,12 @@ class AuthService {
         const user = await userRepository.findByIdentifier(identifier);
 
         if(!user){
-            throw new AppError("User Not Found");
+            throw new ApiError("User Not Found");
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if(!isPasswordValid){
-            throw new AppError("Invalid password");
+            throw new ApiError("Invalid password");
         }
 
         // Generate JWT

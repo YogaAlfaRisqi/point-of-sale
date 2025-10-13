@@ -1,4 +1,5 @@
-const UserRepository = require('../repositories/UserRepository');
+const UserRepository = require("../../../../../catatuang/server/src/api/v1/repository/UserRepository");
+
 
 class UserService {
   static async getAllUsers(page, limit) {
