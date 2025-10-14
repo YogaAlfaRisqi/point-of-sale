@@ -6,7 +6,6 @@ const apiRouter = require('./routes');
 
 const app = express();
 
-
 // Middlewares
 app.use(cors());
 app.use(helmet());
