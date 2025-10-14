@@ -1,29 +1,26 @@
-const prisma = require('../config/database');
+const prisma = require("../config/database");
 
 class UserRepository {
-
   static async create(userData) {
-    try{
+    try {
       return prisma.user.create({
         data: userData,
       });
-    }catch(error){
-      throw new Error ('Error creating user: ' + error.message);    
+    } catch (error) {
+      throw new Error("Error creating user: " + error.message);
     }
   }
 
-
-  async update(userId, updateData){
-    try{
+  async update(userId, updateData) {
+    try {
       return prisma.user.update({
         where: { id: userId },
         data: updateData,
       });
-    }catch(error){
-      throw new Error ('Error updating user: ' + error.message);    
+    } catch (error) {
+      throw new Error("Error updating user: " + error.message);
     }
   }
-
 
   async delete(userId) {
     return prisma.user.delete({
@@ -37,69 +34,61 @@ class UserRepository {
     });
   }
 
-   static async findByUsername(username) {
+  static async findByUsername(username) {
     return prisma.user.findUnique({ where: { username } });
   }
 
-  static async findByIdentifier(identifier){
+  static async findByIdentifier(identifier) {
     return prisma.user.findFirst({
-      where:{
-        OR: [
-          {email:identifier},
-          {username:identifier},
-        ]
-      }
-    })
+      where: {
+        OR: [{ email: identifier }, { username: identifier }],
+      },
+    });
   }
 
   static async findAll(filters = {}) {
-      const {
-        page = 1,
-        limit = 10,
-        includeRoles = false,
-        includeSales = false,
-        salesLimit = 10, 
-      } = filters;
+    try {
+      const { page = 1, limit = 10, includeRoles = false } = filters;
 
       const skip = (page - 1) * limit;
 
-      const include = {};
+      const include = includeRoles
+        ? { userRoles: { include: { role: true } } }
+        : undefined;
 
-      if (includeRoles){
-        include.userRoles = {
-          include: { role: true }
-        }
-      }
+      
+        const users = await prisma.user.findMany({
+          skip,
+          take: limit,
+          include,
+          orderBy: { createdAt: "desc" },
+        });
+      
 
-      if (includeSales){
-        include.sales = {
-          take: salesLimit,
-          orderBy: { createdAt: 'desc' }
-        };
-      }
+      const total = await prisma.user.count();
 
-      return prisma.user.findMany({
-        skip,
-        take: limit,
-        include: Object.keys(include).length>0 ? include : undefined,
-      })
-
+      return {
+        data: users,
+        total,
+      };
+    } catch (error) {
+      console.error("🔥 Error fetching users:", error);
+      throw new Error(`Database error while fetching users: ${error.message}`);
+    }
   }
-
 
   static async findById(userId) {
     return prisma.user.findUnique({
       where: { id: userId },
       include: {
         userRoles: {
-          include: { role: true }
+          include: { role: true },
         },
         sales: true,
         sessions: true,
       },
     });
   }
-
 }
 
 module.exports = UserRepository;

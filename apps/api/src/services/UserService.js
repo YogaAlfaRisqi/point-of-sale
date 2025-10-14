@@ -1,4 +1,4 @@
-const UserRepository = require("../../../../../catatuang/server/src/api/v1/repository/UserRepository");
+const UserRepository = require("../repositories/UserRepository");
 
 
 class UserService {

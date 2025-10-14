@@ -46,8 +46,6 @@ class AuthService {
         }
 
         // Generate JWT
-
-
         return {
             user:{
                 id:user.id,
