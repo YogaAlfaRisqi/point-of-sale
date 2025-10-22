@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 const ApiError = require("../utils/ApiError");
 
 class AuthService {
-  static async register({ username, email, password }) {
+  static async register({ email, password, username, name }) {
     const existingEmail = await userRepository.findByEmail(email);
     if (existingEmail) {
       throw new ApiError(
@@ -22,8 +22,11 @@ class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    
+
     const userData = {
       username,
+      name,
       email,
       password: hashedPassword,
     };

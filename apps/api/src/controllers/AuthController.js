@@ -1,22 +1,34 @@
+const { role } = require("../config/database");
 const authService = require("../services/AuthService");
+const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 
 class AuthController {
   static async register(req, res, next) {
     try {
-      const { username, email, password } = req.body;
+      const { username, name, email, password } = req.body;
 
-      if (!username || !email || !password) {
+      if (!username || !name || !email || !password) {
         return res.status(400).json({
           success: false,
-          message: "Username, email, and password are required",
+          message: "Username, name, email, and password are required",
         });
       }
 
-      const user = await authService.register({ username, email, password });
+      const newUser = await authService.register({ username, name, email, password });
+
+      const payload ={
+        id:newUser.id,
+        role:newUser.role,
+        email:newUser.email
+      }
+
+      const accessToken = generateAccessToken(payload);
+      // const refreshToken = generateRefreshToken(payload);
+
       res.status(201).json({
         success: true,
         message: "User registered successfully",
-        data: user,
+        data: accessToken,
       });
     } catch (error) {
       next(error);
@@ -84,7 +96,7 @@ class AuthController {
 
   static async logout(req, res) {
     try {
-      await AuthService.logout(req.user);
+      await AuthService.logout({req, res});
 
       res.status(200).json({
         success: true,
