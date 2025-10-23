@@ -23,6 +23,7 @@ model User {
   orders        Order[]
   bookings      TableBooking[]
   userRoles     UserRole[]
+  refreshTokens RefreshToken[]
 
   @@index([email])
   @@index([username])
@@ -53,6 +54,17 @@ model UserRole {
   @@index([userId])
   @@index([roleId])
   @@map("user_roles")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime @default(dbgenerated("(now() + interval '7 days')"))
+
+  @@map("refresh_tokens")
 }
 
 model Category {

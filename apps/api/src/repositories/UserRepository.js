@@ -52,15 +52,15 @@ class UserRepository {
 
       const skip = (page - 1) * limit;
 
-      const include = includeRoles
-        ? { userRoles: { include: { role: true } } }
-        : undefined;
+      // const include = includeRoles
+      //   ? { userRoles: { include: { role: true } } }
+      //   : undefined;
 
       
         const users = await prisma.user.findMany({
-          skip,
+          // skip,
           take: limit,
-          include,
+          // include,
           orderBy: { createdAt: "desc" },
         });
       

@@ -1,6 +1,8 @@
 const userRepository = require("../repositories/UserRepository");
 const bcrypt = require("bcrypt");
 const ApiError = require("../utils/ApiError");
+const prisma = require("../config/database");
+const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 
 class AuthService {
   static async register({ email, password, username, name }) {
@@ -22,8 +24,6 @@ class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    
-
     const userData = {
       username,
       name,
@@ -36,26 +36,40 @@ class AuthService {
     return newUser;
   }
 
-  static async login({identifier, password}) {
-        const user = await userRepository.findByIdentifier(identifier);
+  static async login({ identifier, password }) {
+    console.log("➡️ Starting login for:", identifier);
+    const user = await userRepository.findByIdentifier(identifier);
+    console.log("✅ User found:", user?.email);
 
-        if(!user){
-            throw new ApiError("User Not Found");
-        }
+    if (!user) {
+      throw new ApiError("User Not Found");
+    }
 
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if(!isPasswordValid){
-            throw new ApiError("Invalid password");
-        }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new ApiError("Invalid email or password");
+    }
 
-        // Generate JWT
-        return {
-            user:{
-                id:user.id,
-                username:user.username,
-                email:user.email
-            }
-        }
+    const payload = { id: user.id, email: user.email };
+
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+      },
+    });
+    // Generate JWT
+
+   
+
+    return {
+      data: {
+        accessToken, refreshToken
+      },
+    };
   }
 
   static async resetPassword(req, res) {
@@ -71,6 +85,16 @@ class AuthService {
     // send email with instructions
     // return success message
   }
+
+
+  static async logout(userId) {
+    // Hapus refresh token dari DB
+    await prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+    return { message: "Logged out successfully" };
+  }
 }
+
 
 module.exports = AuthService;

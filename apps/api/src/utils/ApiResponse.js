@@ -16,7 +16,7 @@ class ApiResponse {
     });
   }
 
-  static created(res, message = "Error", statusCode = 500, errors =[]){
+  static error(res, message = "Error", statusCode = 500, errors =[]){
     return res.status(statusCode).json({
       success:false,
       message,
