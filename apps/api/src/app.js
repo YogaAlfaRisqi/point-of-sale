@@ -2,16 +2,17 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cookieParser = require(`cookie-parser`);
 const apiRouter = require('./routes');
-
 const app = express();
 
 // Middlewares
-app.use(cors());
+app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(helmet());
 app.use(morgan());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // API routes with prefix
 app.use('/api/v1', apiRouter);

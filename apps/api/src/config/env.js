@@ -2,7 +2,7 @@ const dotenv = require(`dotenv`);
 dotenv.config();
 
 export default {
-  port: process.env.PORT || 4000,
+  port: process.env.PORT || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
   appUrl: process.env.APP_URL || 'http://localhost:3000',
   jwt: {

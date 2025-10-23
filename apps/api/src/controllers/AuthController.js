@@ -1,5 +1,6 @@
-const { role } = require("../config/database");
 const authService = require("../services/AuthService");
+const ApiError = require("../utils/ApiError");
+const ApiResponse = require("../utils/ApiResponse");
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 
 class AuthController {
@@ -14,50 +15,74 @@ class AuthController {
         });
       }
 
-      const newUser = await authService.register({ username, name, email, password });
-
-      const payload ={
-        id:newUser.id,
-        role:newUser.role,
-        email:newUser.email
-      }
-
+      const newUser = await authService.register({
+        username,
+        name,
+        email,
+        password,
+      });
+      // console.log(newUser);
+      const payload = {
+        id: newUser.id,
+        email: newUser.email,
+      };
+      // console.log(payload);
       const accessToken = generateAccessToken(payload);
-      // const refreshToken = generateRefreshToken(payload);
+      const refreshToken = generateRefreshToken(payload);
 
-      res.status(201).json({
-        success: true,
+      return ApiResponse.success(res, {
         message: "User registered successfully",
-        data: accessToken,
+        data: {
+          accessToken,
+          refreshToken,
+        },
+        status: 201,
       });
     } catch (error) {
       next(error);
     }
   }
 
+  static async login(req, res, next) {
+    try {
+      const { identifier, password } = req.body;
 
-  static async login(req, res,next) {
-      try {
-        const { identifier, password } = req.body;
-
-        if(!identifier||!password){
-            return res.status(400).json({
-                success:false,
-                message:"Identifier (username or email) and password are required",
-            });
-        }
-
-        const result = await authService.login({identifier,password});
-
-        res.status(200).json({
-            success:true,
-            message:"Login Successful",
-            data:result,
-        });
-      }catch(error){
-        next(error);
+      if (!identifier || !password) {
+        return new ApiError(
+          "Identifier (Username or Password ) and password are required",
+          400
+        );
       }
+
+      const { accessToken, refreshToken } = await authService.login({
+        identifier,
+        password,
+      });
       
+      // Simpan token di cookie
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 1000 * 60 * 60 * 24, // 1 hari
+      });
+
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 hari
+      });
+
+      return ApiResponse.success(res, {
+        message: "Login Succesfully",
+        accessToken,
+        refreshToken,
+        status: 200,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   static async resetPassword(req, res) {
@@ -94,20 +119,25 @@ class AuthController {
     }
   }
 
-  static async logout(req, res) {
+  static async logout(req, res, next) {
     try {
-      await AuthService.logout({req, res});
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
 
-      res.status(200).json({
-        success: true,
-        message: "Logout successful",
-      });
+      await authService.logout(userId)
+
+      // Hapus cookie
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
+
+      res.json(new ApiResponse(200, "Logged out successfully"));
     } catch (error) {
-      console.error("Error in logout:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-      });
+      next(error);
     }
   }
 }
