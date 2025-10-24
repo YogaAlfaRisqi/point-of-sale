@@ -1,3 +1,4 @@
+const { loginSchema, registerSchema } = require("../middleware/authValidator");
 const authService = require("../services/AuthService");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
@@ -6,14 +7,15 @@ const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 class AuthController {
   static async register(req, res, next) {
     try {
-      const { username, name, email, password } = req.body;
+      // ✅ Validasi dengan Joi
+      const { error, value } = registerSchema.validate(req.body);
 
-      if (!username || !name || !email || !password) {
-        return res.status(400).json({
-          success: false,
-          message: "Username, name, email, and password are required",
-        });
+      if (error) {
+        throw new ApiError(error.details[0].message, 400);
       }
+
+      // Ambil value yang sudah tervalidasi
+      const { username, name, email, password } = value;
 
       const newUser = await authService.register({
         username,
@@ -21,7 +23,7 @@ class AuthController {
         email,
         password,
       });
-      // console.log(newUser);
+      console.log(newUser);
       const payload = {
         id: newUser.id,
         email: newUser.email,
@@ -45,21 +47,21 @@ class AuthController {
 
   static async login(req, res, next) {
     try {
-      const { identifier, password } = req.body;
 
-      if (!identifier || !password) {
-        return new ApiError(
-          "Identifier (Username or Password ) and password are required",
-          400
-        );
+      // ✅ Validasi dengan Joi
+      const { error, value } = loginSchema.validate(req.body);
+
+      if (error) {
+        throw new ApiError(error.details[0].message, 400);
       }
+
+      const { identifier, password } = value ;
 
       const { accessToken, refreshToken } = await authService.login({
         identifier,
         password,
       });
-      
-      // Simpan token di cookie
+
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -122,20 +124,18 @@ class AuthController {
   static async logout(req, res, next) {
     try {
       const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
-      }
+      if (!userId) throw new ApiError("Unauthorized", 401);
 
-      await authService.logout(userId)
+      await authService.logout(userId);
 
       // Hapus cookie
       res.clearCookie("accessToken");
       res.clearCookie("refreshToken");
 
-      res.json(new ApiResponse(200, "Logged out successfully"));
+      return ApiResponse.success(res, null, {
+        message: "Logout successful",
+        status: 200,
+      });
     } catch (error) {
       next(error);
     }
