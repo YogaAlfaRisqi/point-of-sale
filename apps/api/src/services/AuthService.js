@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const ApiError = require("../utils/ApiError");
 const prisma = require("../config/database");
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
+const ApiResponse = require("../utils/ApiResponse");
 
 class AuthService {
   static async register({ email, password, username, name }) {
@@ -37,18 +38,14 @@ class AuthService {
   }
 
   static async login({ identifier, password }) {
-    console.log("➡️ Starting login for:", identifier);
+
     const user = await userRepository.findByIdentifier(identifier);
-    console.log("✅ User found:", user?.email);
-
+    
     if (!user) {
-      throw new ApiError("User Not Found");
+      throw new ApiError("User Not Found",404);
     }
-
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      throw new ApiError("Invalid email or password");
-    }
+    if (!isPasswordValid) throw new ApiError( "Invalid email or password",401);
 
     const payload = { id: user.id, email: user.email };
 
@@ -62,13 +59,11 @@ class AuthService {
       },
     });
     // Generate JWT
-
-   
-
+    console.log("acces token :", accessToken);
+    console.log("refresh token :", refreshToken);
     return {
-      data: {
-        accessToken, refreshToken
-      },
+      accessToken,
+      refreshToken,
     };
   }
 
@@ -86,15 +81,18 @@ class AuthService {
     // return success message
   }
 
-
   static async logout(userId) {
-    // Hapus refresh token dari DB
-    await prisma.refreshToken.deleteMany({
-      where: { userId },
-    });
-    return { message: "Logged out successfully" };
+    try {
+      await userRepository.deleteUserById(userId);
+      // return ApiResponse.success({
+      //   message: "Logout successful",
+      //   status: 200,
+      // });
+    } catch (error) {
+      console.error("🔥 Error in logout:", error);
+       throw new ApiError("Failed to logout", 500);
+    }
   }
 }
-
 
 module.exports = AuthService;

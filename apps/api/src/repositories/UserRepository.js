@@ -1,4 +1,5 @@
 const prisma = require("../config/database");
+const ApiError = require("../utils/ApiError");
 
 class UserRepository {
   static async create(userData) {
@@ -7,7 +8,7 @@ class UserRepository {
         data: userData,
       });
     } catch (error) {
-      throw new Error("Error creating user: " + error.message);
+      throw new ApiError("Error creating user: ",500);
     }
   }
 
@@ -25,6 +26,12 @@ class UserRepository {
   async delete(userId) {
     return prisma.user.delete({
       where: { id: userId },
+    });
+  }
+
+  static async deleteUserById(userId) {
+    return prisma.refreshToken.deleteMany({
+      where: { userId },
     });
   }
 

@@ -1,8 +1,8 @@
 
 class ApiResponse {
-  static success(res, data = null, message = "Success", status = 200) {
-    return res.status(status).json({
-      status: "success",
+  static success(res, data ={} , message = "Success", status = 200) {
+    return res.status(Number(status)).json({
+      status:true,
       message,
       data,
     });
@@ -16,12 +16,15 @@ class ApiResponse {
     });
   }
 
-  static error(res, message = "Error", statusCode = 500, errors =[]){
-    return res.status(statusCode).json({
-      success:false,
+  static error(res, statusCode = 500, message = "Internal Server Error", details = null) {
+    const response = {
+      status: "error",
       message,
-      errors,
-    })
+    };
+
+    if (details) response.details = details; // untuk Joi validation atau error spesifik
+
+    return res.status(Number(statusCode) || 500).json(response);
   }
 }
 
